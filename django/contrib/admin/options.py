@@ -1400,6 +1400,10 @@ class ModelAdmin(BaseModelAdmin):
 
         model = self.model
         opts = model._meta
+
+        if request.method == 'POST' and "_saveasnew" in request.POST:
+            object_id = None
+
         add = object_id is None
 
         if add:
@@ -1416,10 +1420,6 @@ class ModelAdmin(BaseModelAdmin):
             if obj is None:
                 raise Http404(_('%(name)s object with primary key %(key)r does not exist.') % {
                     'name': force_text(opts.verbose_name), 'key': escape(object_id)})
-
-            if request.method == 'POST' and "_saveasnew" in request.POST:
-                object_id = None
-                obj = None
 
         ModelForm = self.get_form(request, obj)
         if request.method == 'POST':
@@ -1480,9 +1480,12 @@ class ModelAdmin(BaseModelAdmin):
 
         # Hide the "Save" and "Save and continue" buttons if "Save as New" was
         # previously chosen to prevent the interface from getting confusing.
+        # Note that we set `add` to False here so that the change template will
+        # be used instead of the add template.
         if request.method == 'POST' and not form_validated and "_saveasnew" in request.POST:
             context['show_save'] = False
             context['show_save_and_continue'] = False
+            add = False
 
         context.update(extra_context or {})
 

@@ -1673,6 +1673,31 @@ class AdminViewPermissionsTest(TestCase):
             self.assertContains(response, 'login-form')
             self.client.get(reverse('admin:logout'))
 
+    def test_change_view_save_as_new(self):
+        """Change view handling 'save as new' should restrict access to 'add' and allow users to add items."""
+        change_dict_save_as_new = {'_saveasnew': 'Save as new',
+                                   'title': 'Ikke fordømt',
+                                   'content': '<p>edited article</p>',
+                                   'date_0': '2008-03-18', 'date_1': '10:54:39',
+                                   'section': self.s1.pk}
+        article_change_url = reverse('admin:admin_views_article_change', args=(self.a1.pk,))
+        article_changelist_url = reverse('admin:admin_views_article_changelist')
+
+        # add user can perform save as new
+        article_count = Article.objects.count()
+        self.client.force_login(self.adduser)
+        post = self.client.post(article_change_url, change_dict_save_as_new)
+        self.assertRedirects(post, self.index_url)
+        self.assertEqual(Article.objects.count(), article_count + 1)
+        self.client.get(reverse('admin:logout'))
+
+        # change user can not perform save as new (they have no 'add' permission)
+        article_count = Article.objects.count()
+        self.client.force_login(self.changeuser)
+        post = self.client.post(article_change_url, change_dict_save_as_new)
+        self.assertEqual(post.status_code, 403)
+        self.assertEqual(Article.objects.count(), article_count)
+
     def test_delete_view(self):
         """Delete view should restrict access and actually delete items."""
         delete_dict = {'post': 'yes'}
